@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: insightforge-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-insightforge_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-insightforge_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-insightforge_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-insightforge_admin} -d ${POSTGRES_DB:-insightforge_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - insightforge-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: insightforge-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=production
+      - PROJECT_NAME=InsightForge AI
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-insightforge_admin}:${POSTGRES_PASSWORD:-insightforge_secure_password}@db:5432/${POSTGRES_DB:-insightforge_db}
+      - SYNC_DATABASE_URL=postgresql://${POSTGRES_USER:-insightforge_admin}:${POSTGRES_PASSWORD:-insightforge_secure_password}@db:5432/${POSTGRES_DB:-insightforge_db}
+      - SECRET_KEY=${SECRET_KEY:-change_this_to_a_secure_random_64_character_hex_key_in_production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-pro}
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+    ports:
+      - "8000:8000"
+    networks:
+      - insightforge-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: insightforge-frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    ports:
+      - "3000:80"
+    networks:
+      - insightforge-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  insightforge-network:
+    driver: bridge

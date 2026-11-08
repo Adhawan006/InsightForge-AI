@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: insightforge-api
+    runtime: python
+    buildCommand: "cd backend && pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: ENVIRONMENT
+        value: production
+      - key: PROJECT_NAME
+        value: InsightForge AI
+      - key: DATABASE_URL
+        fromDatabase:
+          name: insightforge-postgres
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-1.5-pro
+
+databases:
+  - name: insightforge-postgres
+    databaseName: insightforge_db
+    user: insightforge_admin
+    plan: free
