@@ -45,10 +45,6 @@ npm install
 npm run dev
 ```
 
-## 📸 Preview
-
-*Screenshots coming soon.*
-
 ## 👨‍💻 Author
 
 **Aditya Dhawan**
